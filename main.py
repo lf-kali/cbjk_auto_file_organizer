@@ -27,8 +27,8 @@ def pesquisa():
                         (
                             ('Palavra-chave', adiar_input_dict(filtros, 'palavra_chave', str)),
                             ('Extensão', adiar_input_dict(filtros, 'extensao', str)),
-                            ('Tamanho mínimo', adiar_input_dict(filtros, 'tamanho_min', FormattedSize)),
-                            ('Tamanho máximo', adiar_input_dict(filtros, 'tamanho_max', FormattedSize)),
+                            ('Tamanho mínimo', adiar_input_dict(filtros, 'tamanho_min', factorymethod=FormattedSize.fromstr)),
+                            ('Tamanho máximo', adiar_input_dict(filtros, 'tamanho_max', factorymethod=FormattedSize.fromstr)),
                             ('Pesquisar', None),
                         )
     )

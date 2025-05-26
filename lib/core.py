@@ -28,11 +28,26 @@ class FormattedSize:
                 return int(self._num * FormattedSize.__BASE ** exp)
 
 
+    def tostr(self):
+        return f'{self._num}{self._txt}'
+
+
+    @property
+    def num(self):
+        return self._num
+
+
+    @property
+    def txt(self):
+        return self._txt
+
+
     @classmethod
     def frombytes(cls, size:int):
-        for exp, label in enumerate(cls._LABELS, start=1):
-            if size < cls.__BASE ** (exp + 1):
-                tamanho = float(size / cls.__BASE ** (exp - 1))
+        for exp, label in enumerate(cls._LABELS):
+            next_size = cls.__BASE ** (exp+1)
+            if size < next_size:
+                tamanho = float(size / cls.__BASE ** exp)
                 return cls((round(tamanho, 2), label))
 
 
@@ -61,9 +76,6 @@ class FormattedSize:
 
     def __str__(self):
         return f'{self._num}{self._txt}'
-
-
-
 
 
 class Arquivo:
@@ -106,7 +118,7 @@ class Arquivo:
 
     def formatar_tamanho(self):
         tamanho = FormattedSize.frombytes(self._tamanho)
-        return f'{tamanho.format()[0]}{tamanho.format()[1]}'
+        return tamanho.tostr()
 
 
     def mover(self, destino:str):
@@ -180,11 +192,11 @@ class Filtro:
             testes.append(teste_extensao)
 
         if self.tamanho_min is not None:
-            teste_tamanho_min = arquivo.tamanho >= self.tamanho_min
+            teste_tamanho_min = arquivo.tamanho >= self.tamanho_min.tobytes()
             testes.append(teste_tamanho_min)
 
         if self.tamanho_max is not None:
-            teste_tamanho_max = arquivo.tamanho <= self.tamanho_max.rawsize
+            teste_tamanho_max = arquivo.tamanho <= self.tamanho_max.tobytes()
             testes.append(teste_tamanho_max)
 
         return all(testes)
@@ -233,12 +245,12 @@ def adiar_execucao(func, *args, **kwargs):
     return wrapper
 
 
-def adiar_input_dict(dic:dict, chave, valuetype:Type):
+def adiar_input_dict(dic:dict, chave, valuetype:Type=None, factorymethod=None):
     def wrapper():
         while True:
             valor_str = input(f'{chave.replace('_', ' ').capitalize()}: ')
             try:
-                valor_convertido = valuetype(valor_str)
+                valor_convertido = valuetype(valor_str) if factorymethod is None else factorymethod(valor_str)
                 dic.update({chave: valor_convertido})
                 break
             except ValueError:
@@ -268,3 +280,12 @@ def pesquisar_arquivos(diretorio, filtro:Filtro = None):
                 resultados.append(arquivo)
 
     return FileGroup(resultados)
+
+
+if __name__ == '__main__':
+
+    aot = Arquivo(r'D:\arquivos_movidos\arquivo_2.txt')
+
+    print(aot.tamanho)
+
+    print(aot.formatar_tamanho())
