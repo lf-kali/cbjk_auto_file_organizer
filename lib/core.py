@@ -2,14 +2,14 @@ import os
 
 import shutil
 
-from typing import Type
+from typing import Type, Callable
+
 
 class FormattedSize:
     _LABELS = ['B', 'KB', 'MB', 'GB', 'TB', 'PB']
     __BASE = 1024
 
-
-    def __init__(self, size:tuple[float|int, str]):
+    def __init__(self, size: tuple[float | int, str]):
         if size[0] > 0:
             self._num = size[0]
         else:
@@ -20,39 +20,33 @@ class FormattedSize:
         else:
             raise ValueError(f'Unidade de tamanho inexistente: {size[1]}')
 
-
     def tobytes(self):
         for exp in range(6, 0, -1):
             idx = exp - 1
             if FormattedSize._LABELS[idx] == self._txt:
                 return int(self._num * FormattedSize.__BASE ** exp)
 
-
     def tostr(self):
         return f'{self._num}{self._txt}'
-
 
     @property
     def num(self):
         return self._num
 
-
     @property
     def txt(self):
         return self._txt
 
-
     @classmethod
-    def frombytes(cls, size:int):
+    def frombytes(cls, size: int):
         for exp, label in enumerate(cls._LABELS):
-            next_size = cls.__BASE ** (exp+1)
+            next_size = cls.__BASE ** (exp + 1)
             if size < next_size:
                 tamanho = float(size / cls.__BASE ** exp)
                 return cls((round(tamanho, 2), label))
 
-
     @classmethod
-    def fromstr(cls, txt:str):
+    def fromstr(cls, txt: str):
         txt = txt.upper().replace(' ', '')
 
         for i, char in enumerate(txt):
@@ -79,61 +73,50 @@ class FormattedSize:
 
 
 class Arquivo:
-    def __init__(self, caminho:str):
+    def __init__(self, caminho: str):
         self._caminho = caminho
         self._raiz, self._nome = os.path.split(caminho)
         self._stem, self._extensao = os.path.splitext(self._nome)
         self._tamanho = os.path.getsize(caminho)
 
-
     @property
     def caminho(self):
         return self._caminho
-
 
     @property
     def raiz(self):
         return self._raiz
 
-
     @property
     def nome(self):
         return self._nome
-
 
     @property
     def stem(self):
         return self._stem
 
-
     @property
     def extensao(self):
         return self._extensao
-
 
     @property
     def tamanho(self):
         return self._tamanho
 
-
     def formatar_tamanho(self):
         tamanho = FormattedSize.frombytes(self._tamanho)
         return tamanho.tostr()
 
-
-    def mover(self, destino:str):
+    def mover(self, destino: str):
         novo_caminho = os.path.join(destino, self.nome)
         shutil.move(self._caminho, novo_caminho)
 
-
-    def copiar(self, destino:str):
+    def copiar(self, destino: str):
         novo_caminho = os.path.join(destino, self.nome)
         shutil.copy(self.caminho, novo_caminho)
 
-
     def excluir(self):
         os.remove(self.caminho)
-
 
     def renomear(self, nova_stem):
         novo_nome = f'{nova_stem}{self.extensao}'
@@ -143,30 +126,25 @@ class Arquivo:
         self._raiz, self._nome = os.path.split(novo_caminho)
         self._stem = nova_stem
 
-
     def __repr__(self):
         return f'Nome: {self.nome}, Tamanho: {self.formatar_tamanho()}, Caminho: {self.caminho}'
 
 
 class FileGroup(list):
-    def __init__(self, group:list[Arquivo]):
+    def __init__(self, group: list[Arquivo]):
         super().__init__(group)
-
 
     def mover_todos(self, destino: str):
         for arquivo in self:
             arquivo.mover(destino)
 
-
     def copiar_todos(self, destino: str):
         for arquivo in self:
             arquivo.copiar(destino)
 
-
     def excluir_todos(self):
         for arquivo in self:
             arquivo.excluir()
-
 
     def renomear_todos(self, nova_stem):
         for i, arquivo in enumerate(self):
@@ -174,13 +152,14 @@ class FileGroup(list):
 
 
 class Filtro:
-    def __init__(self, *, palavra_chave:str=None, extensao:str=None, tamanho_min:FormattedSize=None, tamanho_max:FormattedSize=None):
+    def __init__(self, *, palavra_chave: str = None, extensao: str = None, tamanho_min: FormattedSize = None,
+                 tamanho_max: FormattedSize = None):
         self.palavra_chave = palavra_chave
         self.extensao = extensao
         self.tamanho_min = tamanho_min
         self.tamanho_max = tamanho_max
 
-    def match(self, arquivo:Arquivo):
+    def match(self, arquivo: Arquivo):
         testes = []
 
         if self.palavra_chave is not None:
@@ -203,19 +182,17 @@ class Filtro:
 
 
 class Menu:
-    def __init__(self, titulo:str, opcoes):
+    def __init__(self, titulo: str, opcoes):
         self.titulo = titulo
         self.opcoes = opcoes
 
-
     def exibir(self):
-        print('='*80)
+        print('=' * 80)
         print(f'    {self.titulo}')
         print('=' * 80)
-        for i, (texto, _) in enumerate(self.opcoes, start = 1):
+        for i, (texto, _) in enumerate(self.opcoes, start=1):
             print(f'\033[32m{i}\033[m - \033[34m{texto}\033[m')
-        print('='*40)
-
+        print('=' * 40)
 
     def escolher(self):
         while True:
@@ -228,7 +205,6 @@ class Menu:
             except ValueError:
                 print('Opção inválida!')
 
-
     def executar(self):
         while True:
             self.exibir()
@@ -239,13 +215,42 @@ class Menu:
             acao()
 
 
+class Routine:
+    def __init__(self, name):
+        self._name = name
+        self._funcs = []
+        self._json = {'name': name, 'routine':[]}
+
+    def addfunc(self, func, *args, **kwargs):
+        def wrapper():
+            return func(*args, **kwargs)
+
+        self._funcs.append(wrapper)
+        self._json['routine'].append({'func': func.__name__, 'args': args, 'kwargs': kwargs})
+
+    def run(self):
+        for func in self._funcs:
+            func()
+
+    def export(self, caminho: str):
+        import json
+        with open(caminho, 'w+', encoding='utf-8') as f:
+            json.dump(self._json, f, ensure_ascii=False, indent=4)
+
+    """def from_json(self, caminho: str):
+        import json
+        with open(caminho, 'r', encoding='utf-8') as f:"""
+
+
+
 def adiar_execucao(func, *args, **kwargs):
     def wrapper():
         return func(*args, **kwargs)
+
     return wrapper
 
 
-def adiar_input_dict(dic:dict, chave, valuetype:Type=None, factorymethod=None):
+def adiar_input_dict(dic: dict, chave, valuetype: Type = None, factorymethod:Callable=None):
     def wrapper():
         while True:
             valor_str = input(f'{chave.replace('_', ' ').capitalize()}: ')
@@ -255,6 +260,7 @@ def adiar_input_dict(dic:dict, chave, valuetype:Type=None, factorymethod=None):
                 break
             except ValueError:
                 print('Entrada inválida!')
+
     return wrapper
 
 
@@ -268,7 +274,7 @@ def ler_caminho(prompt):
             return caminho
 
 
-def pesquisar_arquivos(diretorio, filtro:Filtro = None):
+def pesquisar_arquivos(diretorio, filtro: Filtro = None):
     varredura = list(os.walk(diretorio))
     resultados = []
 
@@ -283,11 +289,6 @@ def pesquisar_arquivos(diretorio, filtro:Filtro = None):
 
 
 if __name__ == '__main__':
-
     aot = Arquivo(r'D:\arquivos_movidos\arquivo_2.txt')
 
     print(aot.tamanho)
-
-
-
-
