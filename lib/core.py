@@ -9,16 +9,16 @@ class FormattedSize:
     _LABELS = ['B', 'KB', 'MB', 'GB', 'TB', 'PB']
     __BASE = 1024
 
-    def __init__(self, size: tuple[float | int, str]):
-        if size[0] > 0:
-            self._num = size[0]
+    def __init__(self, num, txt):
+        if num > 0:
+            self._num = num
         else:
-            raise ValueError(f'"{size[0]}" não é um numero válido.')
+            raise ValueError(f'"{num}" não é um numero válido.')
 
-        if size[1].upper() in FormattedSize._LABELS:
-            self._txt = size[1]
+        if txt.upper() in FormattedSize._LABELS:
+            self._txt = txt
         else:
-            raise ValueError(f'Unidade de tamanho inexistente: {size[1]}')
+            raise ValueError(f'Unidade de tamanho inexistente: {txt}')
 
     def tobytes(self):
         for exp in range(6, 0, -1):
@@ -66,7 +66,7 @@ class FormattedSize:
         if label not in cls._LABELS:
             raise ValueError(f'Unidade de tamanho inexistente: {label}')
 
-        return cls((num, label))
+        return cls(num, label)
 
     def __str__(self):
         return f'{self._num}{self._txt}'
@@ -179,6 +179,18 @@ class Filtro:
             testes.append(teste_tamanho_max)
 
         return all(testes)
+
+    def to_dict(self):
+        return {
+            'palavra_chave':self.palavra_chave,
+            'extensao': self.extensao,
+            'tamanho_min': vars(self.tamanho_min),
+            'tamanho_max': vars(self.tamanho_max)
+        }
+
+    @classmethod
+    def from_dict(cls, data:dict):
+        return cls(**data)
 
 
 class Menu:
@@ -315,13 +327,20 @@ def pesquisar_arquivos(diretorio, filtro: Filtro = None):
 
     return FileGroup(resultados)
 
-#teste de rotinas
+#testes
 if __name__ == '__main__':
-    pesquisar_imagens = Routine('pesquisar_imagens')
+    #teste de rotinas
+    r"""pesquisar_imagens = Routine('pesquisar_imagens')
     pesquisar_imagens.addfunc(pesquisar_arquivos, r'C:\Users\Meu Computador\Downloads', filtro=Filtro(extensao='.jpg'))
     pesquisar_imagens.addfunc(pesquisar_arquivos, r'C:\Users\Meu Computador\Downloads', filtro=Filtro(extensao='.png'))
     pesquisar_imagens.run(unpack = True)
     resultadoss = pesquisar_imagens.get_results()
     for res in resultadoss:
-        print(res, end = '\n\n')
+        print(res, end = '\n\n')"""
+
+    #teste de Serializabilidade
+    filtro1 = Filtro(palavra_chave='Abacate', extensao='.mp4', tamanho_min=FormattedSize.fromstr('29KB'), tamanho_max=FormattedSize.fromstr('95MB'))
+    dic1 = filtro1.to_dict()
+    filtro2 = Filtro.from_dict(dic1)
+
 
