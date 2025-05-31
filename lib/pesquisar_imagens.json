@@ -1,0 +1,39 @@
+{
+ "name": "pesquisar_imagens",
+ "routine": [
+  {
+   "func": "pesquisar_arquivos",
+   "args": [
+    "C:\\Users\\Meu Computador\\Downloads"
+   ],
+   "kwargs": {
+    "filtro": {
+     "class": "Filtro",
+     "attrs": {
+      "palavra_chave": null,
+      "extensao": ".jpg",
+      "tamanho_min": null,
+      "tamanho_max": null
+     }
+    }
+   }
+  },
+  {
+   "func": "pesquisar_arquivos",
+   "args": [
+    "C:\\Users\\Meu Computador\\Downloads"
+   ],
+   "kwargs": {
+    "filtro": {
+     "class": "Filtro",
+     "attrs": {
+      "palavra_chave": null,
+      "extensao": ".png",
+      "tamanho_min": null,
+      "tamanho_max": null
+     }
+    }
+   }
+  }
+ ]
+}

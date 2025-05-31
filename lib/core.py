@@ -2,6 +2,8 @@ import os
 
 import shutil
 
+import json
+
 from typing import Type, Callable
 
 
@@ -227,29 +229,8 @@ class Menu:
             acao()
 
 
-class Filesearch:
-    #def __init__(self, diretorio, filtro:Filtro = None):
-    def __init__(self, diretorio):
-        self._diretorio = diretorio
-        #self._filtro = filtro
-        self._results = FileGroup([])
-
-    def search(self, filtro:Filtro = None):
-        varredura = list(os.walk(self._diretorio))
-        resultados = []
-
-        for raiz, _, arquivos in varredura:
-            for arquivo in arquivos:
-                arquivo = Arquivo(str(os.path.join(raiz, arquivo)))
-
-                if filtro is None or filtro.match(arquivo):
-                    resultados.append(arquivo)
-
-        self._results.append(*resultados)
-
-
 class Routine:
-    def __init__(self, name):
+    def __init__(self, name, __funcs=None, __json=None, __results=None):
         self._name = name
         self._funcs = []
         self._json = {'name': name, 'routine':[]}
@@ -260,7 +241,9 @@ class Routine:
             return func(*args, **kwargs)
 
         self._funcs.append(wrapper)
-        self._json['routine'].append({'func': func.__name__, 'args': args, 'kwargs': kwargs})
+        self._json['routine'].append({'func': func.__name__,
+                                      'args': tuple((arg if is_serializable(arg) else vars(arg)) for arg in args),
+                                      'kwargs': {key:(value if is_serializable(value) else {'class': value.__class__.__name__, 'attrs':vars(value)}) for key, value in kwargs.items()}})
 
     def run(self, unpack=False):
         for func in self._funcs:
@@ -270,17 +253,32 @@ class Routine:
             else:
                 self._results.extend(ret)
 
-    def export(self, caminho: str):
-        import json
-        with open(caminho, 'w+', encoding='utf-8') as f:
-            json.dump(self._json, f, ensure_ascii=False, indent=4)
-
     def get_results(self):
         return self._results
 
-    """def from_json(self, caminho: str):
-        import json
-        with open(caminho, 'r', encoding='utf-8') as f:"""
+    def export(self):
+        try:
+            with open(f'{self._name}.json', 'w+', encoding='utf-8') as f:
+                json.dump(self._json, f, indent=True, ensure_ascii=False)
+            print('exportado!')
+        except Exception as e:
+            print(e)
+
+    @classmethod
+    def from_json(cls, path):
+        with open(path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        routine = cls(data['name'])
+
+
+
+
+def is_serializable(obj):
+    try:
+        json.dumps(obj)
+        return True
+    except (TypeError, OverflowError):
+        return False
 
 
 def adiar_execucao(func, *args, **kwargs):
@@ -330,17 +328,17 @@ def pesquisar_arquivos(diretorio, filtro: Filtro = None):
 #testes
 if __name__ == '__main__':
     #teste de rotinas
-    r"""pesquisar_imagens = Routine('pesquisar_imagens')
+    pesquisar_imagens = Routine('pesquisar_imagens')
     pesquisar_imagens.addfunc(pesquisar_arquivos, r'C:\Users\Meu Computador\Downloads', filtro=Filtro(extensao='.jpg'))
     pesquisar_imagens.addfunc(pesquisar_arquivos, r'C:\Users\Meu Computador\Downloads', filtro=Filtro(extensao='.png'))
     pesquisar_imagens.run(unpack = True)
     resultadoss = pesquisar_imagens.get_results()
-    for res in resultadoss:
-        print(res, end = '\n\n')"""
-
+    #for res in resultadoss:
+        #print(res, end = '\n\n')
+"""
     #teste de Serializabilidade
     filtro1 = Filtro(palavra_chave='Abacate', extensao='.mp4', tamanho_min=FormattedSize.fromstr('29KB'), tamanho_max=FormattedSize.fromstr('95MB'))
     dic1 = filtro1.to_dict()
-    filtro2 = Filtro.from_dict(dic1)
+    filtro2 = Filtro.from_dict(dic1)"""
 
 
