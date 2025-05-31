@@ -2,7 +2,7 @@
  "name": "pesquisar_imagens",
  "routine": [
   {
-   "func": "pesquisar_arquivos",
+   "funcname": "pesquisar_arquivos",
    "args": [
     "C:\\Users\\Meu Computador\\Downloads"
    ],
@@ -19,7 +19,7 @@
    }
   },
   {
-   "func": "pesquisar_arquivos",
+   "funcname": "pesquisar_arquivos",
    "args": [
     "C:\\Users\\Meu Computador\\Downloads"
    ],

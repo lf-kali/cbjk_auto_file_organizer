@@ -45,7 +45,7 @@ class FormattedSize:
             next_size = cls.__BASE ** (exp + 1)
             if size < next_size:
                 tamanho = float(size / cls.__BASE ** exp)
-                return cls((round(tamanho, 2), label))
+                return cls(round(tamanho, 2), label)
 
     @classmethod
     def fromstr(cls, txt: str):
@@ -241,7 +241,7 @@ class Routine:
             return func(*args, **kwargs)
 
         self._funcs.append(wrapper)
-        self._json['routine'].append({'func': func.__name__,
+        self._json['routine'].append({'funcname': func.__name__,
                                       'args': tuple((arg if is_serializable(arg) else vars(arg)) for arg in args),
                                       'kwargs': {key:(value if is_serializable(value) else {'class': value.__class__.__name__, 'attrs':vars(value)}) for key, value in kwargs.items()}})
 
@@ -269,8 +269,20 @@ class Routine:
         with open(path, 'r', encoding='utf-8') as f:
             data = json.load(f)
         routine = cls(data['name'])
+        for task in data['routine']:
+            funcname = task['funcname']
+            args = task['args']
+            kwargs = {}
+            for key, arg in task['kwargs'].items():
+                if isinstance(arg, dict) and arg['class']:
+                    classname = arg['class']
+                    attrs = arg['attrs']
+                    instanciar = globals()[classname]
+                    arg = instanciar(**attrs)
+                kwargs[key] = arg
+            routine.addfunc(funcname, *args, **kwargs)
 
-
+        return routine
 
 
 def is_serializable(obj):
