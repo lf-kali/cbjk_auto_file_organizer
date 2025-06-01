@@ -236,14 +236,15 @@ class Routine:
         self._json = {'name': name, 'routine':[]}
         self._results = []
 
-    def addfunc(self, func, *args, **kwargs):
+    def addfunc(self, func, __from_json=False, *args, **kwargs):
         def wrapper():
             return func(*args, **kwargs)
-
         self._funcs.append(wrapper)
-        self._json['routine'].append({'funcname': func.__name__,
-                                      'args': tuple((arg if is_serializable(arg) else vars(arg)) for arg in args),
-                                      'kwargs': {key:(value if is_serializable(value) else {'class': value.__class__.__name__, 'attrs':vars(value)}) for key, value in kwargs.items()}})
+
+        if not __from_json:
+            self._json['routine'].append({'funcname': func.__name__,
+                                          'args': tuple((arg if is_serializable(arg) else vars(arg)) for arg in args),
+                                          'kwargs': {key:(value if is_serializable(value) else {'class': value.__class__.__name__, 'attrs':vars(value)}) for key, value in kwargs.items()}})
 
     def run(self, unpack=False):
         for func in self._funcs:
@@ -280,7 +281,7 @@ class Routine:
                     instanciar = globals()[classname]
                     arg = instanciar(**attrs)
                 kwargs[key] = arg
-            routine.addfunc(funcname, *args, **kwargs)
+            routine.addfunc(funcname, __from_json=True, *args, **kwargs)
 
         return routine
 
