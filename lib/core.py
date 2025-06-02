@@ -230,21 +230,16 @@ class Menu:
 
 
 class Routine:
-    def __init__(self, name, __funcs=None, __json=None, __results=None):
+    def __init__(self, name, __funcs=None, __results=None):
         self._name = name
         self._funcs = []
-        self._json = {'name': name, 'routine':[]}
         self._results = []
 
-    def addfunc(self, func, __from_json=False, *args, **kwargs):
+
+    def addfunc(self, func, *args, **kwargs):
         def wrapper():
             return func(*args, **kwargs)
         self._funcs.append(wrapper)
-
-        if not __from_json:
-            self._json['routine'].append({'funcname': func.__name__,
-                                          'args': tuple((arg if is_serializable(arg) else vars(arg)) for arg in args),
-                                          'kwargs': {key:(value if is_serializable(value) else {'class': value.__class__.__name__, 'attrs':vars(value)}) for key, value in kwargs.items()}})
 
     def run(self, unpack=False):
         for func in self._funcs:
@@ -257,33 +252,7 @@ class Routine:
     def get_results(self):
         return self._results
 
-    def export(self):
-        try:
-            with open(f'{self._name}.json', 'w+', encoding='utf-8') as f:
-                json.dump(self._json, f, indent=True, ensure_ascii=False)
-            print('exportado!')
-        except Exception as e:
-            print(e)
 
-    @classmethod
-    def from_json(cls, path):
-        with open(path, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-        routine = cls(data['name'])
-        for task in data['routine']:
-            funcname = task['funcname']
-            args = task['args']
-            kwargs = {}
-            for key, arg in task['kwargs'].items():
-                if isinstance(arg, dict) and arg['class']:
-                    classname = arg['class']
-                    attrs = arg['attrs']
-                    instanciar = globals()[classname]
-                    arg = instanciar(**attrs)
-                kwargs[key] = arg
-            routine.addfunc(funcname, __from_json=True, *args, **kwargs)
-
-        return routine
 
 
 def is_serializable(obj):
@@ -342,10 +311,12 @@ def pesquisar_arquivos(diretorio, filtro: Filtro = None):
 if __name__ == '__main__':
     #teste de rotinas
     pesquisar_imagens = Routine('pesquisar_imagens')
-    pesquisar_imagens.addfunc(pesquisar_arquivos, r'C:\Users\Meu Computador\Downloads', filtro=Filtro(extensao='.jpg'))
-    pesquisar_imagens.addfunc(pesquisar_arquivos, r'C:\Users\Meu Computador\Downloads', filtro=Filtro(extensao='.png'))
+    pesquisar_imagens.addfunc(pesquisar_arquivos,r'C:\Users\Meu Computador\Downloads', filtro=Filtro(extensao='.jpg'))
+    pesquisar_imagens.addfunc(pesquisar_arquivos,r'C:\Users\Meu Computador\Downloads', filtro=Filtro(extensao='.png'))
     pesquisar_imagens.run(unpack = True)
     resultadoss = pesquisar_imagens.get_results()
+    teste = Routine.from_json('pesquisar_imagens.json')
+    teste.run()
     #for res in resultadoss:
         #print(res, end = '\n\n')
 """
