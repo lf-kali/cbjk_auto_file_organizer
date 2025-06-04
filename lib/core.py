@@ -8,7 +8,7 @@ from typing import Type, Callable
 
 
 class FormattedSize:
-    _LABELS = ['B', 'KB', 'MB', 'GB', 'TB', 'PB']
+    __LABELS = ['B', 'KB', 'MB', 'GB', 'TB', 'PB']
     __BASE = 1024
 
     def __init__(self, num, txt):
@@ -17,7 +17,7 @@ class FormattedSize:
         else:
             raise ValueError(f'"{num}" não é um numero válido.')
 
-        if txt.upper() in FormattedSize._LABELS:
+        if txt.upper() in FormattedSize.__LABELS:
             self._txt = txt
         else:
             raise ValueError(f'Unidade de tamanho inexistente: {txt}')
@@ -25,7 +25,7 @@ class FormattedSize:
     def tobytes(self):
         for exp in range(6, 0, -1):
             idx = exp - 1
-            if FormattedSize._LABELS[idx] == self._txt:
+            if FormattedSize.__LABELS[idx] == self._txt:
                 return int(self._num * FormattedSize.__BASE ** exp)
 
     def tostr(self):
@@ -41,7 +41,7 @@ class FormattedSize:
 
     @classmethod
     def frombytes(cls, size: int):
-        for exp, label in enumerate(cls._LABELS):
+        for exp, label in enumerate(cls.__LABELS):
             next_size = cls.__BASE ** (exp + 1)
             if size < next_size:
                 tamanho = float(size / cls.__BASE ** exp)
@@ -65,10 +65,12 @@ class FormattedSize:
         except ValueError:
             raise ValueError(f'{num_str} não é um número válido.')
 
-        if label not in cls._LABELS:
+        if label not in cls.__LABELS:
             raise ValueError(f'Unidade de tamanho inexistente: {label}')
 
         return cls(num, label)
+
+
 
     def __str__(self):
         return f'{self._num}{self._txt}'
@@ -186,8 +188,8 @@ class Filtro:
         return {
             'palavra_chave':self.palavra_chave,
             'extensao': self.extensao,
-            'tamanho_min': vars(self.tamanho_min),
-            'tamanho_max': vars(self.tamanho_max)
+            'tamanho_min': vars(self.tamanho_min) if self.tamanho_min is not None else None,
+            'tamanho_max': vars(self.tamanho_max) if self.tamanho_min is not None else None
         }
 
     @classmethod
@@ -232,14 +234,34 @@ class Menu:
 class Routine:
     def __init__(self, name, __funcs=None, __results=None):
         self._name = name
+        self._descritive_funcs = []
         self._funcs = []
         self._results = []
+        if len(self._descritive_funcs) > len(self._funcs):
+            self.compile_funcs()
 
+    @property
+    def funcs(self):
+        return self._descritive_funcs
 
     def addfunc(self, func, *args, **kwargs):
-        def wrapper():
-            return func(*args, **kwargs)
-        self._funcs.append(wrapper)
+        call = {
+            'func': func.__name__,
+            'args': list(arg if not isinstance(arg, Filtro) else arg.to_dict for arg in args),
+            'kwargs': {key:value if not isinstance(value, Filtro) else value.to_dict() for key, value in kwargs.items()}
+        }
+        self._descritive_funcs.append(call)
+
+    def compile_funcs(self):
+        for d_func in self._descritive_funcs:
+            nomefunc = d_func['func']
+            func = globals()[nomefunc]
+
+            args = d_func['args']
+            kwargs = {key: value if not (key == 'filtro' and isinstance(value, dict)) else Filtro.from_dict(value) for
+                      key, value in d_func['kwargs'].items()}
+
+            self._funcs.append(adiar_execucao(func, *args, **kwargs))
 
     def run(self, unpack=False):
         for func in self._funcs:
@@ -251,6 +273,8 @@ class Routine:
 
     def get_results(self):
         return self._results
+
+
 
 
 
@@ -307,16 +331,27 @@ def pesquisar_arquivos(diretorio, filtro: Filtro = None):
 
     return FileGroup(resultados)
 
+
+def serialize_func(func, *args, **kwargs):
+
+    call = {
+        'func': func.__name__,
+        'args': list(args),
+        'kwargs': dict(kwargs)
+    }
+    return call
+
 #testes
 if __name__ == '__main__':
     #teste de rotinas
     pesquisar_imagens = Routine('pesquisar_imagens')
     pesquisar_imagens.addfunc(pesquisar_arquivos,r'C:\Users\Meu Computador\Downloads', filtro=Filtro(extensao='.jpg'))
     pesquisar_imagens.addfunc(pesquisar_arquivos,r'C:\Users\Meu Computador\Downloads', filtro=Filtro(extensao='.png'))
-    pesquisar_imagens.run(unpack = True)
-    resultadoss = pesquisar_imagens.get_results()
-    teste = Routine.from_json('pesquisar_imagens.json')
-    teste.run()
+    print(*pesquisar_imagens.funcs, sep='\n\n')
+    #pesquisar_imagens.run(unpack = True)
+    #resultadoss = pesquisar_imagens.get_results()
+    """teste = Routine.from_json('pesquisar_imagens.json')
+    teste.run()"""
     #for res in resultadoss:
         #print(res, end = '\n\n')
 """
