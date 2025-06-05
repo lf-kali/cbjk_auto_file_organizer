@@ -232,11 +232,11 @@ class Menu:
 
 
 class Routine:
-    def __init__(self, name, __funcs=None, __results=None):
+    def __init__(self, name, _funcs=None, _results=None):
         self._name = name
-        self._descritive_funcs = []
-        self._funcs = []
-        self._results = []
+        self._descritive_funcs = _funcs if _funcs is not None else[]
+        self._funcs =  []
+        self._results = _results if _results is not None else []
         if len(self._descritive_funcs) > len(self._funcs):
             self.compile_funcs()
 
@@ -274,9 +274,20 @@ class Routine:
     def get_results(self):
         return self._results
 
+    def export_routine(self):
+        data = {
+            'name': self._name,
+            'funcs': self._descritive_funcs,
+            'results': [vars(res) for res in self._results]
+        }
+        with open(f'{self._name}.json', 'w+', encoding='utf-8') as f:
+            json.dump(data, f, indent=4)
 
-
-
+    @classmethod
+    def import_routine(cls, path):
+        with open(path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        return cls(name=data['name'], _funcs=data['funcs'], _results=data['results'])
 
 
 def is_serializable(obj):
@@ -332,15 +343,6 @@ def pesquisar_arquivos(diretorio, filtro: Filtro = None):
     return FileGroup(resultados)
 
 
-def serialize_func(func, *args, **kwargs):
-
-    call = {
-        'func': func.__name__,
-        'args': list(args),
-        'kwargs': dict(kwargs)
-    }
-    return call
-
 #testes
 if __name__ == '__main__':
     #teste de rotinas
@@ -348,12 +350,9 @@ if __name__ == '__main__':
     pesquisar_imagens.addfunc(pesquisar_arquivos,r'C:\Users\Meu Computador\Downloads', filtro=Filtro(extensao='.jpg'))
     pesquisar_imagens.addfunc(pesquisar_arquivos,r'C:\Users\Meu Computador\Downloads', filtro=Filtro(extensao='.png'))
     print(*pesquisar_imagens.funcs, sep='\n\n')
-    #pesquisar_imagens.run(unpack = True)
-    #resultadoss = pesquisar_imagens.get_results()
-    """teste = Routine.from_json('pesquisar_imagens.json')
-    teste.run()"""
-    #for res in resultadoss:
-        #print(res, end = '\n\n')
+    pesquisar_imagens.export_routine()
+
+
 """
     #teste de Serializabilidade
     filtro1 = Filtro(palavra_chave='Abacate', extensao='.mp4', tamanho_min=FormattedSize.fromstr('29KB'), tamanho_max=FormattedSize.fromstr('95MB'))

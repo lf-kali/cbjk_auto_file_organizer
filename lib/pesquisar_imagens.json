@@ -1,39 +1,34 @@
 {
- "name": "pesquisar_imagens",
- "routine": [
-  {
-   "funcname": "pesquisar_arquivos",
-   "args": [
-    "C:\\Users\\Meu Computador\\Downloads"
-   ],
-   "kwargs": {
-    "filtro": {
-     "class": "Filtro",
-     "attrs": {
-      "palavra_chave": null,
-      "extensao": ".jpg",
-      "tamanho_min": null,
-      "tamanho_max": null
-     }
-    }
-   }
-  },
-  {
-   "funcname": "pesquisar_arquivos",
-   "args": [
-    "C:\\Users\\Meu Computador\\Downloads"
-   ],
-   "kwargs": {
-    "filtro": {
-     "class": "Filtro",
-     "attrs": {
-      "palavra_chave": null,
-      "extensao": ".png",
-      "tamanho_min": null,
-      "tamanho_max": null
-     }
-    }
-   }
-  }
- ]
+    "name": "pesquisar_imagens",
+    "funcs": [
+        {
+            "func": "pesquisar_arquivos",
+            "args": [
+                "C:\\Users\\Meu Computador\\Downloads"
+            ],
+            "kwargs": {
+                "filtro": {
+                    "palavra_chave": null,
+                    "extensao": ".jpg",
+                    "tamanho_min": null,
+                    "tamanho_max": null
+                }
+            }
+        },
+        {
+            "func": "pesquisar_arquivos",
+            "args": [
+                "C:\\Users\\Meu Computador\\Downloads"
+            ],
+            "kwargs": {
+                "filtro": {
+                    "palavra_chave": null,
+                    "extensao": ".png",
+                    "tamanho_min": null,
+                    "tamanho_max": null
+                }
+            }
+        }
+    ],
+    "results": []
 }
