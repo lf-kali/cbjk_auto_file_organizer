@@ -231,6 +231,7 @@ class Menu:
             acao()
 
 
+# noinspection PyTypeChecker
 class Routine:
     def __init__(self, name, _funcs=None, _results=None):
         self._name = name
@@ -306,6 +307,7 @@ def adiar_execucao(func, *args, **kwargs):
 
 
 def adiar_input_dict(dic: dict, chave, valuetype: Type = None, factorymethod:Callable=None):
+    # noinspection PyCallingNonCallable
     def wrapper():
         while True:
             valor_str = input(f'{chave.replace('_', ' ').capitalize()}: ')
