@@ -137,6 +137,9 @@ class Arquivo:
 class FileGroup(list):
     def __init__(self, group: list[Arquivo]):
         super().__init__(group)
+        tests = [(True if isinstance(item, Arquivo) else False) for item in group]
+        if not all(tests):
+            raise TypeError
 
     def mover_todos(self, destino: str):
         for arquivo in self:
@@ -231,7 +234,6 @@ class Menu:
             acao()
 
 
-# noinspection PyTypeChecker
 class Routine:
     def __init__(self, name, _funcs=None, _results=None):
         self._name = name
@@ -275,6 +277,7 @@ class Routine:
     def get_results(self):
         return self._results
 
+    # noinspection PyTypeChecker
     def export_routine(self):
         data = {
             'name': self._name,
@@ -343,6 +346,7 @@ def pesquisar_arquivos(diretorio, filtro: Filtro = None):
                 resultados.append(arquivo)
 
     return FileGroup(resultados)
+
 
 
 #testes
