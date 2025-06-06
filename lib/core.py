@@ -70,11 +70,8 @@ class FormattedSize:
 
         return cls(num, label)
 
-
-
     def __str__(self):
         return f'{self._num}{self._txt}'
-
 
 class Arquivo:
     def __init__(self, caminho: str):
@@ -136,10 +133,11 @@ class Arquivo:
 
 class FileGroup(list):
     def __init__(self, group: list[Arquivo]):
-        super().__init__(group)
-        tests = [(True if isinstance(item, Arquivo) else False) for item in group]
+        tests = [isinstance(item, Arquivo) for item in group]
         if not all(tests):
             raise TypeError
+            pass
+        super().__init__(group)
 
     def mover_todos(self, destino: str):
         for arquivo in self:
@@ -358,7 +356,7 @@ reg = {
     'adiar_execucao':adiar_execucao,
     'adiar_input_dict':adiar_input_dict,
     'ler_caminho':ler_caminho,
-    'pesquisar_arquivos':pesquisar_arquivos
+    'pesquisar_arquivos':pesquisar_arquivos,
 }
 
 #testes
