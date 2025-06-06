@@ -10,7 +10,7 @@
                 "filtro": {
                     "palavra_chave": null,
                     "extensao": ".jpg",
-                    "tamanho_min": null,
+                    "tamanho_min": "25.0MB",
                     "tamanho_max": null
                 }
             }
@@ -24,7 +24,7 @@
                 "filtro": {
                     "palavra_chave": null,
                     "extensao": ".png",
-                    "tamanho_min": null,
+                    "tamanho_min": "25.0MB",
                     "tamanho_max": null
                 }
             }

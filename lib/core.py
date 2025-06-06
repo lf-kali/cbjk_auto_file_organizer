@@ -151,17 +151,25 @@ class FileGroup(list):
         for arquivo in self:
             arquivo.excluir()
 
-    def renomear_todos(self, nova_stem):
+    def renomear_todos(self, nova_stem: str):
         for i, arquivo in enumerate(self):
             arquivo.renomear(f'{nova_stem}_{i}')
 
 
 class Filtro:
-    def __init__(self, *, palavra_chave: str = None, extensao: str = None, tamanho_min: FormattedSize = None,
+    def __init__(self, *, palavra_chave: str = None, extensao: str = None, tamanho_min: str = None,
                  tamanho_max: FormattedSize = None):
         self.palavra_chave = palavra_chave
         self.extensao = extensao
-        self.tamanho_min = tamanho_min
+        try:
+            self.tamanho_min = FormattedSize.fromstr(tamanho_min)
+        except Exception:
+            raise TypeError(f'"{tamanho_min}" não é um tamanho de arquivo válido.')
+        try:
+            self.tamanho_max = FormattedSize.fromstr(tamanho_min)
+        except Exception:
+            raise TypeError(f'"{tamanho_max}" não é um tamanho de arquivo válido')
+
         self.tamanho_max = tamanho_max
 
     def match(self, arquivo: Arquivo):
@@ -189,8 +197,8 @@ class Filtro:
         return {
             'palavra_chave':self.palavra_chave,
             'extensao': self.extensao,
-            'tamanho_min': vars(self.tamanho_min) if self.tamanho_min is not None else None,
-            'tamanho_max': vars(self.tamanho_max) if self.tamanho_min is not None else None
+            'tamanho_min': None if not self.tamanho_min else self.tamanho_min.tostr(),
+            'tamanho_max': None if not self.tamanho_max else self.tamanho_max.tostr()
         }
 
     @classmethod
@@ -248,7 +256,7 @@ class Routine:
     def addfunc(self, func, *args, **kwargs):
         call = {
             'func': func.__name__,
-            'args': list(arg if not isinstance(arg, Filtro) else arg.to_dict for arg in args),
+            'args': list(arg if not isinstance(arg, Filtro) else arg.to_dict() for arg in args),
             'kwargs': {key:value if not isinstance(value, Filtro) else value.to_dict() for key, value in kwargs.items()}
         }
         self._descritive_funcs.append(call)
@@ -307,7 +315,7 @@ def adiar_execucao(func, *args, **kwargs):
     return wrapper
 
 
-def adiar_input_dict(dic: dict, chave, valuetype: Type = None, factorymethod:Callable=None):
+def adiar_input_dict(dic: dict, chave: str, valuetype: Type = None, factorymethod: Callable = None):
     # noinspection PyCallingNonCallable
     def wrapper():
         while True:
@@ -363,8 +371,8 @@ reg = {
 if __name__ == '__main__':
     #teste de rotinas
     pesquisar_imagens = Routine('pesquisar_imagens')
-    pesquisar_imagens.addfunc(pesquisar_arquivos,r'C:\Users\Meu Computador\Downloads', filtro=Filtro(extensao='.jpg'))
-    pesquisar_imagens.addfunc(pesquisar_arquivos,r'C:\Users\Meu Computador\Downloads', filtro=Filtro(extensao='.png'))
+    pesquisar_imagens.addfunc(pesquisar_arquivos,r'C:\Users\Meu Computador\Downloads', filtro=Filtro(extensao='.jpg', tamanho_min='25mb'))
+    pesquisar_imagens.addfunc(pesquisar_arquivos,r'C:\Users\Meu Computador\Downloads', filtro=Filtro(extensao='.png', tamanho_min='25mb'))
     print(*pesquisar_imagens.funcs, sep='\n\n')
     pesquisar_imagens.export_routine()
 
