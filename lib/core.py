@@ -347,7 +347,19 @@ def pesquisar_arquivos(diretorio, filtro: Filtro = None):
 
     return FileGroup(resultados)
 
-
+reg = {
+    'FormattedSize':FormattedSize,
+    'Arquivo':Arquivo,
+    'Filegroup':FileGroup,
+    'Filtro':Filtro,
+    'Menu':Menu,
+    'Routine':Routine,
+    'is_serializable':is_serializable,
+    'adiar_execucao':adiar_execucao,
+    'adiar_input_dict':adiar_input_dict,
+    'ler_caminho':ler_caminho,
+    'pesquisar_arquivos':pesquisar_arquivos
+}
 
 #testes
 if __name__ == '__main__':
@@ -358,11 +370,5 @@ if __name__ == '__main__':
     print(*pesquisar_imagens.funcs, sep='\n\n')
     pesquisar_imagens.export_routine()
 
-
-"""
-    #teste de Serializabilidade
-    filtro1 = Filtro(palavra_chave='Abacate', extensao='.mp4', tamanho_min=FormattedSize.fromstr('29KB'), tamanho_max=FormattedSize.fromstr('95MB'))
-    dic1 = filtro1.to_dict()
-    filtro2 = Filtro.from_dict(dic1)"""
 
 
