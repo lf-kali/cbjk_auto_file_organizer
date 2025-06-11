@@ -260,8 +260,8 @@ class Routine:
 
     def compile_funcs(self):
 
-        for i, d_func in enumerate(self._descritive_funcs):
-            if i <= len(self._funcs):
+        for i, d_func in enumerate(self._descritive_funcs, start=0):
+            if i < len(self._funcs):
                 continue
 
             nomefunc = d_func['func']
