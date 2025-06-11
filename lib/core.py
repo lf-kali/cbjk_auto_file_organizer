@@ -158,19 +158,17 @@ class FileGroup(list):
 
 class Filtro:
     def __init__(self, *, palavra_chave: str = None, extensao: str = None, tamanho_min: str = None,
-                 tamanho_max: FormattedSize = None):
+                 tamanho_max: str = None):
         self.palavra_chave = palavra_chave
         self.extensao = extensao
         try:
-            self.tamanho_min = FormattedSize.fromstr(tamanho_min)
-        except Exception:
-            raise TypeError(f'"{tamanho_min}" não é um tamanho de arquivo válido.')
+            self.tamanho_min = None if tamanho_min is None else FormattedSize.fromstr(tamanho_min)
+        except ValueError:
+            raise ValueError(f'"{tamanho_min}" não é um tamanho de arquivo válido.')
         try:
-            self.tamanho_max = FormattedSize.fromstr(tamanho_min)
-        except Exception:
-            raise TypeError(f'"{tamanho_max}" não é um tamanho de arquivo válido')
-
-        self.tamanho_max = tamanho_max
+            self.tamanho_max = None if tamanho_min is None else FormattedSize.fromstr(tamanho_min)
+        except ValueError:
+            raise ValueError(f'"{tamanho_max}" não é um tamanho de arquivo válido')
 
     def match(self, arquivo: Arquivo):
         testes = []
@@ -241,13 +239,11 @@ class Menu:
 
 
 class Routine:
-    def __init__(self, name, _funcs=None, _results=None):
+    def __init__(self, name, _funcs=None):
         self._name = name
-        self._descritive_funcs = _funcs if _funcs is not None else[]
+        self._descritive_funcs = _funcs if _funcs else[]
         self._funcs =  []
-        self._results = _results if _results is not None else []
-        if len(self._descritive_funcs) > len(self._funcs):
-            self.compile_funcs()
+        self._results = []
 
     @property
     def funcs(self):
@@ -256,29 +252,43 @@ class Routine:
     def addfunc(self, func, *args, **kwargs):
         call = {
             'func': func.__name__,
-            'args': list(arg if not isinstance(arg, Filtro) else arg.to_dict() for arg in args),
-            'kwargs': {key:value if not isinstance(value, Filtro) else value.to_dict() for key, value in kwargs.items()}
+            'args': list(args),
+            'kwargs': dict(kwargs)
         }
         self._descritive_funcs.append(call)
+        self.compile_funcs()
 
     def compile_funcs(self):
-        for d_func in self._descritive_funcs:
+
+        for i, d_func in enumerate(self._descritive_funcs):
+            if i <= len(self._funcs):
+                continue
+
             nomefunc = d_func['func']
-            func = globals()[nomefunc]
+            func = reg[nomefunc]
 
-            args = d_func['args']
-            kwargs = {key: value if not (key == 'filtro' and isinstance(value, dict)) else Filtro.from_dict(value) for
-                      key, value in d_func['kwargs'].items()}
+            c_args = d_func['args']
+            c_kwargs = d_func['kwargs']
 
-            self._funcs.append(adiar_execucao(func, *args, **kwargs))
+            self._funcs.append(adiar_execucao(func, *c_args, **c_kwargs))
 
     def run(self, unpack=False):
+        send = []
         for func in self._funcs:
             ret = func()
-            if not unpack:
-                self._results.append(ret)
-            else:
-                self._results.extend(ret)
+            if ret is None:
+                continue
+
+            send.append(ret)
+
+        if len(send) == 0:
+            pass
+
+        elif unpack:
+            self._results.extend(send)
+
+        else:
+            self._results.append(send)
 
     def get_results(self):
         return self._results
@@ -288,7 +298,6 @@ class Routine:
         data = {
             'name': self._name,
             'funcs': self._descritive_funcs,
-            'results': [vars(res) for res in self._results]
         }
         with open(f'{self._name}.json', 'w+', encoding='utf-8') as f:
             json.dump(data, f, indent=4)
@@ -297,7 +306,7 @@ class Routine:
     def import_routine(cls, path):
         with open(path, 'r', encoding='utf-8') as f:
             data = json.load(f)
-        return cls(name=data['name'], _funcs=data['funcs'], _results=data['results'])
+        return cls(name=data['name'], _funcs=data['funcs'],)
 
 
 def is_serializable(obj):
@@ -340,7 +349,8 @@ def ler_caminho(prompt):
             return caminho
 
 
-def pesquisar_arquivos(diretorio, filtro: Filtro = None):
+def pesquisar_arquivos(diretorio, filtro: dict = None):
+    filtro = Filtro.from_dict(filtro)
     varredura = list(os.walk(diretorio))
     resultados = []
 
@@ -356,7 +366,7 @@ def pesquisar_arquivos(diretorio, filtro: Filtro = None):
 reg = {
     'FormattedSize':FormattedSize,
     'Arquivo':Arquivo,
-    'Filegroup':FileGroup,
+    'FileGroup':FileGroup,
     'Filtro':Filtro,
     'Menu':Menu,
     'Routine':Routine,
@@ -371,10 +381,14 @@ reg = {
 if __name__ == '__main__':
     #teste de rotinas
     pesquisar_imagens = Routine('pesquisar_imagens')
-    pesquisar_imagens.addfunc(pesquisar_arquivos,r'C:\Users\Meu Computador\Downloads', filtro=Filtro(extensao='.jpg', tamanho_min='25mb'))
-    pesquisar_imagens.addfunc(pesquisar_arquivos,r'C:\Users\Meu Computador\Downloads', filtro=Filtro(extensao='.png', tamanho_min='25mb'))
+    filtros_jpg = {'extensao':'.jpg'}
+    filtros_png = {'extensao':'.png'}
+    pesquisar_imagens.addfunc(pesquisar_arquivos,r'C:\Users\Meu Computador\Downloads', filtro=filtros_jpg)
+    pesquisar_imagens.addfunc(pesquisar_arquivos,r'C:\Users\Meu Computador\Downloads', filtro=filtros_png)
     print(*pesquisar_imagens.funcs, sep='\n\n')
-    pesquisar_imagens.export_routine()
-
+    #pesquisar_imagens.export_routine()
+    pesquisar_imagens.run()
+    ress = pesquisar_imagens.get_results()
+    print(ress)
 
 

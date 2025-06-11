@@ -8,10 +8,8 @@
             ],
             "kwargs": {
                 "filtro": {
-                    "palavra_chave": null,
                     "extensao": ".jpg",
-                    "tamanho_min": "25.0MB",
-                    "tamanho_max": null
+                    "tamanho_min": "25mb"
                 }
             }
         },
@@ -22,10 +20,8 @@
             ],
             "kwargs": {
                 "filtro": {
-                    "palavra_chave": null,
                     "extensao": ".png",
-                    "tamanho_min": "25.0MB",
-                    "tamanho_max": null
+                    "tamanho_min": "25mb"
                 }
             }
         }
