@@ -73,6 +73,7 @@ class FormattedSize:
     def __str__(self):
         return f'{self._num}{self._txt}'
 
+
 class Arquivo:
     def __init__(self, caminho: str):
         self._caminho = caminho
@@ -241,7 +242,7 @@ class Menu:
 class Routine:
     def __init__(self, name, _funcs=None):
         self._name = name
-        self._descritive_funcs = _funcs if _funcs else[]
+        self._descritive_funcs = _funcs if _funcs else []
         self._funcs =  []
         self._results = []
 
@@ -260,8 +261,8 @@ class Routine:
 
     def compile_funcs(self):
 
-        for i, d_func in enumerate(self._descritive_funcs):
-            if i <= len(self._funcs):
+        for i, d_func in enumerate(self._descritive_funcs, start=0):
+            if i < len(self._funcs):
                 continue
 
             nomefunc = d_func['func']
@@ -363,6 +364,26 @@ def pesquisar_arquivos(diretorio, filtro: dict = None):
 
     return FileGroup(resultados)
 
+
+def mover_resultados(arquivos:FileGroup):
+    destino = input('Novo caminho: ')
+    arquivos.mover_todos(destino)
+
+
+def copiar_resultados(arquivos:FileGroup):
+    destino = input('Novo caminho: ')
+    arquivos.copiar_todos(destino)
+
+
+def excluir_resultados(arquivos:FileGroup):
+    arquivos.excluir_todos()
+
+
+def renomear_resultados(arquivos:FileGroup):
+    nova_stem = input('Novo nome padrão para os arquivos: ')
+    arquivos.renomear_todos(nova_stem)
+
+
 reg = {
     'FormattedSize':FormattedSize,
     'Arquivo':Arquivo,
@@ -375,6 +396,10 @@ reg = {
     'adiar_input_dict':adiar_input_dict,
     'ler_caminho':ler_caminho,
     'pesquisar_arquivos':pesquisar_arquivos,
+    'mover_resultados':mover_resultados,
+    'copiar_resultados':copiar_resultados,
+    'excluir_resultados':excluir_resultados,
+    'renomear_resultados':renomear_resultados,
 }
 
 #testes

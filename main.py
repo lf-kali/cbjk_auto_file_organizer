@@ -1,26 +1,7 @@
 from lib.core import *
 
 
-def mover_resultados(arquivos:FileGroup):
-    destino = input('Novo caminho: ')
-    arquivos.mover_todos(destino)
-
-
-def copiar_resultados(arquivos:FileGroup):
-    destino = input('Novo caminho: ')
-    arquivos.copiar_todos(destino)
-
-
-def excluir_resultados(arquivos:FileGroup):
-    arquivos.excluir_todos()
-
-
-def renomear_resultados(arquivos:FileGroup):
-    nova_stem = input('Novo nome padrão para os arquivos: ')
-    arquivos.renomear_todos(nova_stem)
-
-
-def pesquisa():
+def pesquisa_manual():
     filtros = {}
     caminho_pesquisa = ler_caminho('Caminho a executar a pesquisa: ')
     menu_filtros = Menu('Selecionar Filtros:',
@@ -35,9 +16,7 @@ def pesquisa():
 
     menu_filtros.executar()
 
-    filtragem = Filtro(**filtros)
-
-    resultados = pesquisar_arquivos(caminho_pesquisa, filtro=filtragem)
+    resultados = pesquisar_arquivos(caminho_pesquisa, filtro=filtros)
 
     for resultado in resultados:
         print(resultado, end=f'\n{'='*80}\n')
@@ -55,8 +34,17 @@ def pesquisa():
     menu_manipulacao.executar()
 
 
+
+
+
 def main():
-    menu_inicial = Menu('Menu Inicial', (('Iniciar pesquisa', pesquisa), ('Sair', None)))
+    menu_inicial = Menu(
+        'Menu Inicial', (
+            ('Iniciar pesquisa manual', pesquisa_manual),
+            #('Iniciar pesquisa automática', pesquisa_automatica),
+            ('Sair', None),
+        )
+    )
     menu_inicial.executar()
 
 
