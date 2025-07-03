@@ -157,52 +157,57 @@ class FileGroup(list):
             arquivo.renomear(f'{nova_stem}_{i}')
 
 
-class Filtro:
-    def __init__(self, *, palavra_chave: str = None, extensao: str = None, tamanho_min: str = None,
-                 tamanho_max: str = None):
-        self.palavra_chave = palavra_chave
-        self.extensao = extensao
-        try:
-            self.tamanho_min = None if tamanho_min is None else FormattedSize.fromstr(tamanho_min)
-        except ValueError:
-            raise ValueError(f'"{tamanho_min}" não é um tamanho de arquivo válido.')
-        try:
-            self.tamanho_max = None if tamanho_min is None else FormattedSize.fromstr(tamanho_min)
-        except ValueError:
-            raise ValueError(f'"{tamanho_max}" não é um tamanho de arquivo válido')
+class Filter:
+    FILTER_TYPES = {
+        'tags': tuple,
+        'extensions': tuple,
+        'tamanho_min': str,
+        'tamanho_max': str
+    }
 
-    def match(self, arquivo: Arquivo):
-        testes = []
+    def __init__(self, filter_type:str, value):
+        if filter_type not in Filter.FILTER_TYPES.keys():
+            raise ValueError(f'{filter_type} não é um tipo de filtro reconhecido.')
 
-        if self.palavra_chave is not None:
-            teste_palavra_chave = self.palavra_chave in arquivo.stem
-            testes.append(teste_palavra_chave)
+        self.__filter_type = filter_type
 
-        if self.extensao is not None:
-            teste_extensao = self.extensao == arquivo.extensao
-            testes.append(teste_extensao)
+        expected_type = Filter.FILTER_TYPES[self.__filter_type]
+        value_typecheck = isinstance(value, expected_type)
+        if not value_typecheck:
+            raise TypeError(f'{type(value)} value type is not valid for "{self.__filter_type}" '
+                            f'filter type\nCorrect type: {expected_type}')
 
-        if self.tamanho_min is not None:
-            teste_tamanho_min = arquivo.tamanho >= self.tamanho_min.tobytes()
-            testes.append(teste_tamanho_min)
+        if 'tamanho' in self.__filter_type:
+            try:
+                self.__value = FormattedSize.fromstr(value)
+            except ValueError:
+                raise ValueError(f'{value} is not a valid file size.')
+        else:
+            self.__value = value
 
-        if self.tamanho_max is not None:
-            teste_tamanho_max = arquivo.tamanho <= self.tamanho_max.tobytes()
-            testes.append(teste_tamanho_max)
-
-        return all(testes)
-
-    def to_dict(self):
-        return {
-            'palavra_chave':self.palavra_chave,
-            'extensao': self.extensao,
-            'tamanho_min': None if not self.tamanho_min else self.tamanho_min.tostr(),
-            'tamanho_max': None if not self.tamanho_max else self.tamanho_max.tostr()
+    def match(self, arquivo:Arquivo):
+        filter_testing = {
+            'tags': lambda a: any(tag in a.stem for tag in self.__value),
+            'extensions': lambda a: any(extension == a.extensao for extension in self.__value),
+            'tamanho_min': lambda a: a.tamanho >= self.__value.tobytes(),
+            'tamanho_max': lambda a: a.tamanho <= self.__value.tobytes()
         }
 
-    @classmethod
-    def from_dict(cls, data:dict):
-        return cls(**data)
+        return filter_testing[self.__filter_type](arquivo)
+
+
+class FilterList(list):
+    def __init__(self, filters:list[Filter]):
+        tests = [isinstance(filefilter, Filter) for filefilter in filters]
+        if not all(tests):
+            raise TypeError
+            pass
+        super().__init__(filters)
+
+    def match_all(self, file:Arquivo):
+        tests = [filefilter.match(file) for filefilter in self]
+
+        return all(tests)
 
 
 class Menu:
@@ -237,6 +242,32 @@ class Menu:
             if acao is None:
                 break
             acao()
+
+
+class FileSearch:
+    def __init__(self, dirpath, **filters):
+        self.dirpath = dirpath
+        self.filters = []
+        self.__results = []
+        for key, value in filters.items():
+            if key in Filter.FILTER_TYPES.keys():
+                self.filters.append(Filter(key, value))
+            else:
+                raise ValueError(f'"{key}" não é um tipo de filtro reconhecido.')
+
+        self.filters = FilterList(self.filters)
+
+    def run(self):
+        varredura = list(os.walk(self.dirpath))
+        for raiz, _, arquivos in varredura:
+            for arquivo in arquivos:
+                arquivo = Arquivo(str(os.path.join(raiz,arquivo)))
+
+                if not self.filters or self.filters.match_all(arquivo):
+                    self.__results.append(arquivo)
+
+    def get_results(self):
+        return FileGroup(self.__results)
 
 
 class Routine:
@@ -350,21 +381,6 @@ def ler_caminho(prompt):
             return caminho
 
 
-def pesquisar_arquivos(diretorio, filtro: dict = None):
-    filtro = Filtro.from_dict(filtro)
-    varredura = list(os.walk(diretorio))
-    resultados = []
-
-    for raiz, _, arquivos in varredura:
-        for arquivo in arquivos:
-            arquivo = Arquivo(str(os.path.join(raiz, arquivo)))
-
-            if filtro is None or filtro.match(arquivo):
-                resultados.append(arquivo)
-
-    return FileGroup(resultados)
-
-
 def mover_resultados(arquivos:FileGroup):
     destino = input('Novo caminho: ')
     arquivos.mover_todos(destino)
@@ -388,14 +404,15 @@ reg = {
     'FormattedSize':FormattedSize,
     'Arquivo':Arquivo,
     'FileGroup':FileGroup,
-    'Filtro':Filtro,
+    'FileSearch': FileSearch,
+    'Filter':Filter,
+    'FilterList':FilterList,
     'Menu':Menu,
     'Routine':Routine,
     'is_serializable':is_serializable,
     'adiar_execucao':adiar_execucao,
     'adiar_input_dict':adiar_input_dict,
     'ler_caminho':ler_caminho,
-    'pesquisar_arquivos':pesquisar_arquivos,
     'mover_resultados':mover_resultados,
     'copiar_resultados':copiar_resultados,
     'excluir_resultados':excluir_resultados,
@@ -404,16 +421,13 @@ reg = {
 
 #testes
 if __name__ == '__main__':
-    #teste de rotinas
-    pesquisar_imagens = Routine('pesquisar_imagens')
-    filtros_jpg = {'extensao':'.jpg'}
-    filtros_png = {'extensao':'.png'}
-    pesquisar_imagens.addfunc(pesquisar_arquivos,r'C:\Users\Meu Computador\Downloads', filtro=filtros_jpg)
-    pesquisar_imagens.addfunc(pesquisar_arquivos,r'C:\Users\Meu Computador\Downloads', filtro=filtros_png)
-    print(*pesquisar_imagens.funcs, sep='\n\n')
-    #pesquisar_imagens.export_routine()
-    pesquisar_imagens.run()
-    ress = pesquisar_imagens.get_results()
-    print(ress)
+    pesquisa = FileSearch('C:\\Users\\Meu Computador\\Downloads', extensions = ('.png', '.jpg', '.pdf', '.exe', '.html'))
+
+    pesquisa.run()
+
+    ress = pesquisa.get_results()
+
+    print(*ress, sep='\n\n')
+
 
 
