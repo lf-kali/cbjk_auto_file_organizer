@@ -211,7 +211,7 @@ class FilterList(list):
 
 
 class Menu:
-    def __init__(self, titulo: str, opcoes):
+    def __init__(self, titulo: str, *opcoes):
         self.titulo = titulo
         self.opcoes = opcoes
 
