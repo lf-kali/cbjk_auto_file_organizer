@@ -12,10 +12,7 @@ class FormattedSize:
     __BASE = 1024
 
     def __init__(self, num, txt):
-        if num > 0:
-            self._num = num
-        else:
-            raise ValueError(f'"{num}" não é um numero válido.')
+        self._num = num
 
         if txt.upper() in FormattedSize.__LABELS:
             self._txt = txt
@@ -114,7 +111,8 @@ class Arquivo:
         shutil.move(self._caminho, novo_caminho)
 
     def copiar(self, destino: str):
-        novo_caminho = os.path.join(destino, self.nome)
+        novo_nome = f"{self._stem}_copy{self._extensao}"
+        novo_caminho = os.path.join(destino, novo_nome)
         shutil.copy(self.caminho, novo_caminho)
 
     def excluir(self):
@@ -128,6 +126,15 @@ class Arquivo:
         self._raiz, self._nome = os.path.split(novo_caminho)
         self._stem = nova_stem
 
+    def to_dict(self):
+        data = {
+            'name':self.nome,
+            'dir':self.raiz,
+            'path':self.caminho,
+            'size':self.formatar_tamanho()
+        }
+        return data
+
     def __repr__(self):
         return f'Nome: {self.nome}, Tamanho: {self.formatar_tamanho()}, Caminho: {self.caminho}'
 
@@ -137,7 +144,6 @@ class FileGroup(list):
         tests = [isinstance(item, Arquivo) for item in group]
         if not all(tests):
             raise TypeError
-            pass
         super().__init__(group)
 
     def mover_todos(self, destino: str):
@@ -157,12 +163,13 @@ class FileGroup(list):
             arquivo.renomear(f'{nova_stem}_{i}')
 
 
+
 class Filter:
     FILTER_TYPES = {
-        'tags': tuple,
-        'extensions': tuple,
-        'tamanho_min': str,
-        'tamanho_max': str
+        'tags': (tuple, list),
+        'extensions': (tuple, list),
+        'tamanho_min': (str,),
+        'tamanho_max': (str,)
     }
 
     def __init__(self, filter_type:str, value):
@@ -171,11 +178,12 @@ class Filter:
 
         self.__filter_type = filter_type
 
-        expected_type = Filter.FILTER_TYPES[self.__filter_type]
-        value_typecheck = isinstance(value, expected_type)
+        expected_types = Filter.FILTER_TYPES[self.__filter_type]
+        value_typecheck = isinstance(value, expected_types)
+
         if not value_typecheck:
             raise TypeError(f'{type(value)} value type is not valid for "{self.__filter_type}" '
-                            f'filter type\nCorrect type: {expected_type}')
+                            f'filter type\nCorrect type: {expected_types}')
 
         if 'tamanho' in self.__filter_type:
             try:
@@ -185,10 +193,18 @@ class Filter:
         else:
             self.__value = value
 
+    @property
+    def filter_type(self):
+        return self.__filter_type
+
+    @property
+    def value(self):
+        return self.__value
+
     def match(self, arquivo:Arquivo):
         filter_testing = {
-            'tags': lambda a: any(tag in a.stem for tag in self.__value),
-            'extensions': lambda a: any(extension == a.extensao for extension in self.__value),
+            'tags': lambda a: any(tag.upper().strip() in a.stem.upper() for tag in self.__value),
+            'extensions': lambda a: any(extension.lower().strip() == a.extensao for extension in self.__value),
             'tamanho_min': lambda a: a.tamanho >= self.__value.tobytes(),
             'tamanho_max': lambda a: a.tamanho <= self.__value.tobytes()
         }
@@ -201,13 +217,36 @@ class FilterList(list):
         tests = [isinstance(filefilter, Filter) for filefilter in filters]
         if not all(tests):
             raise TypeError
-            pass
+        
         super().__init__(filters)
 
     def match_all(self, file:Arquivo):
         tests = [filefilter.match(file) for filefilter in self]
 
         return all(tests)
+
+    @classmethod
+    def from_dict(cls, data):
+        return cls([Filter(key, value) for key, value in data.items()])
+
+    @classmethod
+    def ignore_invalid(cls, **data):
+        valid = []
+        for key, value in data.items():
+            if value in ('', [], [''], None):
+                continue
+            try:
+                valid.append(Filter(key, value))
+            except ValueError:
+                continue
+        return cls(valid)
+
+    def to_dict(self):
+        data = {}
+        for filefilter in self:
+            data.update({filefilter.filter_type:filefilter.value})
+
+        return data
 
 
 class Menu:
@@ -246,16 +285,9 @@ class Menu:
 
 class FileSearch:
     def __init__(self, dirpath, **filters):
-        self.dirpath = dirpath
-        self.filters = []
+        self.dirpath = os.path.normpath(dirpath)
+        self.filters = FilterList.ignore_invalid(**filters)
         self.__results = []
-        for key, value in filters.items():
-            if key in Filter.FILTER_TYPES.keys():
-                self.filters.append(Filter(key, value))
-            else:
-                raise ValueError(f'"{key}" não é um tipo de filtro reconhecido.')
-
-        self.filters = FilterList(self.filters)
 
     def run(self):
         varredura = list(os.walk(self.dirpath))
@@ -266,79 +298,84 @@ class FileSearch:
                 if not self.filters or self.filters.match_all(arquivo):
                     self.__results.append(arquivo)
 
-    def get_results(self):
-        return FileGroup(self.__results)
+    def get_results(self, to_dict = False):
+        return FileGroup(self.__results) if not to_dict else [f.to_dict() for f in self.__results]
 
 
-class Routine:
-    def __init__(self, name, _funcs=None):
-        self._name = name
-        self._descritive_funcs = _funcs if _funcs else []
-        self._funcs =  []
-        self._results = []
+class OrganizingRoutine:
+    __routines_dir = r'D:\Pycharm Projects\cbjk_auto_file_organizer\routines' #linkar ao config.json mais tarde
+
+    def __init__(self, name = 'NewRoutine', task_sources:list = None):
+        self.__task_sources = [] if task_sources is None else task_sources
+        self.__compiled_tasks = []
+        self.__stem = name
+        self.__filename = self.__stem+'.json'
+        self.__path = str(os.path.join(OrganizingRoutine.__routines_dir, self.__filename))
 
     @property
-    def funcs(self):
-        return self._descritive_funcs
+    def name(self):
+        return self.__stem
 
-    def addfunc(self, func, *args, **kwargs):
-        call = {
-            'func': func.__name__,
-            'args': list(args),
-            'kwargs': dict(kwargs)
-        }
-        self._descritive_funcs.append(call)
-        self.compile_funcs()
+    def new_task(self, action, dirpath, **filters):
+        if action not in organizing_actions.keys():
+            raise ValueError('invalid action name')
 
-    def compile_funcs(self):
+        self.__task_sources.append({
+            'action':action,
+            'dirpath':dirpath,
+            'filters':{**filters}
+        })
 
-        for i, d_func in enumerate(self._descritive_funcs, start=0):
-            if i < len(self._funcs):
+        self.compile_tasks()
+
+    def compile_tasks(self):
+        for i, d_task in enumerate(self.__task_sources):
+            if i < len(self.__compiled_tasks):
                 continue
 
-            nomefunc = d_func['func']
-            func = reg[nomefunc]
+            action_name = d_task['action']
+            dirpath = d_task['dirpath']
+            filters = d_task['filters']
 
-            c_args = d_func['args']
-            c_kwargs = d_func['kwargs']
+            search = FileSearch(dirpath, **filters)
+            action = organizing_actions[action_name]
 
-            self._funcs.append(adiar_execucao(func, *c_args, **c_kwargs))
+            self.__compiled_tasks.append((search, action))
 
-    def run(self, unpack=False):
-        send = []
-        for func in self._funcs:
-            ret = func()
-            if ret is None:
-                continue
+    def run(self):
+        for task in self.__compiled_tasks:
+            search, action = task
+            search.run()
+            results = search.get_results()
+            action(results)
 
-            send.append(ret)
+    def export(self):
+        os.makedirs(OrganizingRoutine.__routines_dir, exist_ok=True)
+        data = {'name':self.name, 'task_sources':self.__task_sources}
 
-        if len(send) == 0:
-            pass
+        try:
+            with open(self.__path, 'w+', encoding='utf-8') as r:
+                json.dump(data, r, indent=True, ensure_ascii=False)
 
-        elif unpack:
-            self._results.extend(send)
-
-        else:
-            self._results.append(send)
-
-    def get_results(self):
-        return self._results
-
-    # noinspection PyTypeChecker
-    def export_routine(self):
-        data = {
-            'name': self._name,
-            'funcs': self._descritive_funcs,
-        }
-        with open(f'{self._name}.json', 'w+', encoding='utf-8') as f:
-            json.dump(data, f, indent=4)
+        except Exception as e:
+            print(f'ERRO: {e}')
 
     @classmethod
-    def import_routine(cls, path):
-        with open(path, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-        return cls(name=data['name'], _funcs=data['funcs'],)
+    def from_json(cls, name:str):
+        routine_filename = name+'.json'
+        routine_path = str(os.path.join(cls.__routines_dir, routine_filename))
+
+        try:
+            with open(routine_path, 'r', encoding='utf-8') as r_file:
+                data = json.load(r_file)
+
+                routine = cls(**data)
+                routine.compile_tasks()
+
+                return routine
+
+        except FileNotFoundError:
+            raise FileNotFoundError(f'No routine named "{name}"')
 
 
 def is_serializable(obj):
@@ -408,11 +445,14 @@ reg = {
     'Filter':Filter,
     'FilterList':FilterList,
     'Menu':Menu,
-    'Routine':Routine,
     'is_serializable':is_serializable,
     'adiar_execucao':adiar_execucao,
     'adiar_input_dict':adiar_input_dict,
     'ler_caminho':ler_caminho,
+}
+
+
+organizing_actions = {
     'mover_resultados':mover_resultados,
     'copiar_resultados':copiar_resultados,
     'excluir_resultados':excluir_resultados,
@@ -421,13 +461,6 @@ reg = {
 
 #testes
 if __name__ == '__main__':
-    pesquisa = FileSearch('C:\\Users\\Meu Computador\\Downloads', extensions = ('.png', '.jpg', '.pdf', '.exe', '.html'))
-
-    pesquisa.run()
-
-    ress = pesquisa.get_results()
-
-    print(*ress, sep='\n\n')
-
-
-
+    s = FileSearch("D:\documentos\elden ring", tags=['arquivo'], extensions=[''], tamanho_min='B', tamanho_max='B')
+    s.run()
+    print(s.get_results(to_dict=True))

@@ -1,46 +1,17 @@
-from lib.core import *
+import webview
+from api import API
 
+if __name__ == '__main__':
+    api = API()
 
-def pesquisa_manual():
-    filtros = {}
-    caminho_pesquisa = ler_caminho('Caminho a executar a pesquisa: ')
-
-    menu_filtros = Menu('Selecionar Filtros:',
-        ('Palavra-chave', adiar_input_dict(filtros, 'palavra_chave', str)),
-        ('Extensão', adiar_input_dict(filtros, 'extensao', str)),
-        ('Tamanho mínimo', adiar_input_dict(filtros, 'tamanho_min', str)),
-        ('Tamanho máximo', adiar_input_dict(filtros, 'tamanho_max', str)),
-        ('Pesquisar', None),
+    window = webview.create_window (
+        '>>cbjk_auto_file_organizer//',
+        r'D:\Pycharm Projects\cbjk_auto_file_organizer\interface\index.html', 
+        width = 1000,
+        height = 730,
+        resizable = True,
+        js_api = api,
+        frameless = True,
     )
 
-    menu_filtros.executar()
-
-    resultados = pesquisar_arquivos(caminho_pesquisa, filtro=filtros)
-
-    for resultado in resultados:
-        print(resultado, end=f'\n{'='*80}\n')
-
-    menu_manipulacao = Menu(
-        'Escolha o que fazer com os arquivos:',
-        ('Mover', adiar_execucao(mover_resultados, resultados)),
-        ('Copiar', adiar_execucao(copiar_resultados, resultados)),
-        ('Excluir', adiar_execucao(excluir_resultados, resultados)),
-        ('Renomear', adiar_execucao(renomear_resultados, resultados)),
-        ('Sair', None),
-    )
-
-    menu_manipulacao.executar()
-
-
-def main():
-    menu_inicial = Menu(
-        'Menu Inicial', (
-            ('Iniciar pesquisa manual', pesquisa_manual),
-            #('Iniciar pesquisa automática', pesquisa_automatica),
-            ('Sair', None),
-        )
-    )
-    menu_inicial.executar()
-
-
-main()
+    webview.start(gui="edgechromium", debug=True)

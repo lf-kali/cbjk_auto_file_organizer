@@ -1,0 +1,14 @@
+{
+ "name": "Teste01",
+ "task_sources": [
+  {
+   "action": "excluir_resultados",
+   "dirpath": "D:\\arquivos_movidos",
+   "filters": {
+    "extensions": [
+     ".txt"
+    ]
+   }
+  }
+ ]
+}
