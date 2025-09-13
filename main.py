@@ -6,7 +6,7 @@ if __name__ == '__main__':
 
     window = webview.create_window (
         '>>cbjk_auto_file_organizer//',
-        r'D:\Pycharm Projects\cbjk_auto_file_organizer\interface\index.html', 
+        './interface/index.html', 
         width = 1000,
         height = 730,
         resizable = True,
