@@ -74,8 +74,20 @@ header h1 {
     fill: #e7f2f5;
 }
 
+.control-bar-btn:hover {
+    cursor: pointer;
+    background-color: #5ec1d9;
+    fill: #1e1e1e;
+}
+
 #close-btn {
     height: 20px;
+}
+
+#close-btn:hover {
+    background-color: #ff5c5c;
+    fill: #1e1e1e;
+    cursor: pointer;
 }
 
 aside {
